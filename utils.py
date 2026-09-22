@@ -1,107 +1,96 @@
-import sys
+"""
+utils.py
 
-from PyQt6.QtWidgets import (
-    QApplication,
-    QWidget,
-    QLabel,
-    QComboBox,
-    QLineEdit,
-)
+Small input-validation helpers for the command-line interface (main.py).
 
+Note: this file wasn't provided in the original project, only referenced
+by main.py's imports. This is an inferred implementation based on how
+main.py calls each function (get_float_input(prompt, minimum=...),
+get_int_input(prompt, minimum=...), get_choice(prompt, choices),
+validate_filename(filename)) — check it matches your original if you had
+different behavior in mind.
+"""
 
-app = QApplication(sys.argv)
-
-window = QWidget()
-
-window.setWindowTitle(
-    "Signal Generator and Analyzer"
-)
-
-window.resize(800, 600)
+from __future__ import annotations
 
 
-# Signal selection
-
-signal_label = QLabel(
-    "Select Signal:",
-    parent=window
-)
-
-signal_label.move(50, 50)
-
-
-signal_box = QComboBox(
-    parent=window
-)
-
-signal_box.addItems([
-    "Sine",
-    "Cosine",
-    "Square",
-    "Triangle",
-    "Sinc",
-    "Chirp",
-])
-
-signal_box.move(150, 45)
-signal_box.resize(200, 30)
+def get_float_input(
+    prompt: str, minimum: float | None = None, maximum: float | None = None
+) -> float:
+    """Prompt until the user enters a float within [minimum, maximum]."""
+    while True:
+        raw = input(prompt).strip()
+        try:
+            value = float(raw)
+        except ValueError:
+            print("Please enter a valid number.")
+            continue
+        if minimum is not None and value < minimum:
+            print(f"Value must be >= {minimum}.")
+            continue
+        if maximum is not None and value > maximum:
+            print(f"Value must be <= {maximum}.")
+            continue
+        return value
 
 
-# Amplitude
-
-amplitude_label = QLabel(
-    "Amplitude:",
-    parent=window
-)
-
-amplitude_label.move(50, 100)
-
-
-amplitude_input = QLineEdit(
-    parent=window
-)
-
-amplitude_input.move(150, 95)
-amplitude_input.resize(200, 30)
-
-
-# Duration
-
-duration_label = QLabel(
-    "Duration (s):",
-    parent=window
-)
-
-duration_label.move(50, 150)
+def get_int_input(
+    prompt: str, minimum: int | None = None, maximum: int | None = None
+) -> int:
+    """Prompt until the user enters an int within [minimum, maximum]."""
+    while True:
+        raw = input(prompt).strip()
+        try:
+            value = int(raw)
+        except ValueError:
+            print("Please enter a valid whole number.")
+            continue
+        if minimum is not None and value < minimum:
+            print(f"Value must be >= {minimum}.")
+            continue
+        if maximum is not None and value > maximum:
+            print(f"Value must be <= {maximum}.")
+            continue
+        return value
 
 
-duration_input = QLineEdit(
-    parent=window
-)
-
-duration_input.move(150, 145)
-duration_input.resize(200, 30)
-
-
-# Sampling rate
-
-sample_rate_label = QLabel(
-    "Sampling Rate:",
-    parent=window
-)
-
-sample_rate_label.move(50, 200)
+def get_choice(prompt: str, choices: list[str]) -> str:
+    """Prompt until the user enters one of `choices` (exact match)."""
+    while True:
+        raw = input(prompt).strip()
+        if raw in choices:
+            return raw
+        print(f"Please enter one of: {', '.join(choices)}.")
 
 
-sample_rate_input = QLineEdit(
-    parent=window
-)
+def validate_filename(filename: str) -> str | None:
+    """Return a sanitized .wav filename, or None if invalid/empty.
 
-sample_rate_input.move(150, 195)
-sample_rate_input.resize(200, 30)
+    Prints a message and returns None on invalid input rather than raising,
+    since main.py treats a None return as "skip saving".
+    """
+    filename = filename.strip()
+    if not filename:
+        print("Filename cannot be empty.")
+        return None
+    if any(c in filename for c in '<>:"/\\|?*'):
+        print("Filename contains invalid characters.")
+        return None
+    if not filename.lower().endswith(".wav"):
+        filename += ".wav"
+    return filename
 
 
-window.show()
+if __name__ == "__main__":
+    print("Testing utils.py (non-interactive checks only)...\n")
 
-sys.exit(app.exec())
+    assert validate_filename("test") == "test.wav"
+    assert validate_filename("test.wav") == "test.wav"
+    assert validate_filename("  spaced  ") == "spaced.wav"
+    assert validate_filename("") is None
+    assert validate_filename("bad/name.wav") is None
+    assert validate_filename('bad"name') is None
 
+    print("All non-interactive checks passed. utils.py is working correctly!")
+    print("(get_float_input / get_int_input / get_choice require manual")
+    print(" interactive testing since they read from stdin.)")
